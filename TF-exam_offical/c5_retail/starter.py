@@ -34,30 +34,24 @@
 #
 # TIME SERIES QUESTION
 #
-# Build and train a neural network to predict time indexed variables of
-# the multivariate house hold electric power consumption time series dataset.
-# Using a window of past 24 observations of the 7 variables, the model
-# should be trained to predict the next 24 observations of the 7 variables.
+# Build and train a neural network to predict the time indexed variable of
+# the univariate US diesel prices (On - Highway) All types for the period of
+# 1994 - 2021.
+# Using a window of past 10 observations of 1 feature , train the model
+# to predict the next 10 observations of that feature.
 #
 # ==============================================================================
 #
 # ABOUT THE DATASET
 #
 # Original Source:
-# https://archive.ics.uci.edu/ml/datasets/individual+household+electric+power+consumption
+# https://www.eia.gov/dnav/pet/pet_pri_gnd_dcus_nus_w.htm#
 #
-# The original Individual House Hold Electric Power Consumption Dataset
-# has Measurements of electric power consumption in one household with
-# a one-minute sampling rate over a period of almost 4 years.
+# For the purpose of the examination we have used the Diesel (On - Highway) -
+# All Types time series data for the period of 1994 - 2021 from the
+# aforementioned link. The dataset has 1 time indexed feature.
+# We have provided a cleaned version of the data.
 #
-# Different electrical quantities and some sub-metering values are available.
-#
-# For the purpose of the examination we have provided a subset containing
-# the data for the first 60 days in the dataset. We have also cleaned the
-# dataset beforehand to remove missing values. The dataset is provided as a
-# CSV file in the project.
-#
-# The dataset has a total of 7 features ordered by time.
 # ==============================================================================
 #
 # INSTRUCTIONS
@@ -68,15 +62,15 @@
 # You may receive a score of 0 or your code will fail to be graded if the 
 # following criteria are not met:
 #
-# 1. Model input shape must be (BATCH_SIZE, N_PAST = 24, N_FEATURES = 7),
-#    since the testing infrastructure expects a window of past N_PAST = 24
-#    observations of the 7 features to predict the next N_FUTURE = 24
-#    observations of the same features.
+# 1. Model input shape must be (BATCH_SIZE, N_PAST = 10, N_FEATURES = 1),
+#    since the testing infrastructure expects a window of past N_PAST = 10
+#    observations of the 1 feature to predict the next N_FUTURE = 10
+#    observations of the same feature.
 #
-# 2. Model output shape must be (BATCH_SIZE, N_FUTURE = 24, N_FEATURES = 7)
+# 2. Model output shape must be (BATCH_SIZE, N_FUTURE = 10, N_FEATURES = 1)
 #
-# 3. The last layer of your model must be a Dense layer with 7 neurons since
-#    the model is expected to predict observations of 7 features.
+# 3. The last layer of your model must be a Dense layer with 1 neuron since
+#    the model is expected to predict observations of 1 feature.
 #
 # 4. Don't change the values of the following constants:
 #    SPLIT_TIME, N_FEATURES, BATCH_SIZE, N_PAST, N_FUTURE, SHIFT, in
@@ -95,26 +89,12 @@
 #
 # HINT: If you follow all the rules mentioned above and throughout this
 # question while training your neural network, there is a possibility that a
-# validation MAE of approximately 0.055 or less on the normalized validation
+# validation MAE of approximately 0.02 or less on the normalized validation
 # dataset may fetch you top marks.
 
 
-import urllib
-import zipfile
-
 import pandas as pd
 import tensorflow as tf
-
-
-# This function downloads and extracts the dataset to the directory that
-# contains this file.
-# DO NOT CHANGE THIS CODE
-# (unless you need to change https to http)
-def download_and_extract_data():
-    url = 'https://storage.googleapis.com/download.tensorflow.org/data/certificate/household_power.zip'
-    urllib.request.urlretrieve(url, 'household_power.zip')
-    with zipfile.ZipFile('household_power.zip', 'r') as zip_ref:
-        zip_ref.extractall()
 
 
 # This function normalizes the dataset using min max scaling.
@@ -126,17 +106,20 @@ def normalize_series(data, min, max):
 
 
 # This function is used to map the time series dataset into windows of
-# features and respective targets, to prepare it for training and
-# validation. First element of the first window will be the first element of
-# the dataset. Consecutive windows are constructed by shifting
-# the starting position of the first window forward, one at a time (indicated
-# by shift=1). For a window of n_past number of observations of all the time
-# indexed variables in the dataset, the target for the window
-# is the next n_future number of observations of these variables, after the
+# features and respective targets, to prepare it for training and validation.
+# The first element of the first window will be the first element of
+# the dataset.
+#
+# Consecutive windows are constructed by shifting the starting position
+# of the first window forward, one at a time (indicated by shift=1).
+#
+# For a window of n_past number of observations of the time
+# indexed variable in the dataset, the target for the window is the next
+# n_future number of observations of the variable, after the
 # end of the window.
 
-# DO NOT CHANGE THIS CODE
-def windowed_dataset(series, batch_size, n_past=24, n_future=24, shift=1):
+# DO NOT CHANGE THIS.
+def windowed_dataset(series, batch_size, n_past=10, n_future=10, shift=1):
     ds = tf.data.Dataset.from_tensor_slices(series)
     ds = ds.window(size=n_past + n_future, shift=shift, drop_remainder=True)
     ds = ds.flat_map(lambda w: w.batch(n_past + n_future))
@@ -144,8 +127,7 @@ def windowed_dataset(series, batch_size, n_past=24, n_future=24, shift=1):
     return ds.batch(batch_size).prefetch(1)
 
 
-
-# This function loads the data from CSV file, normalizes the data and
+# This function loads the data from the CSV file, normalizes the data and
 # splits the dataset into train and validation data. It also uses
 # windowed_dataset() to split the data into windows of observations and
 # targets. Finally it defines, compiles and trains a neural network. This
@@ -153,23 +135,21 @@ def windowed_dataset(series, batch_size, n_past=24, n_future=24, shift=1):
 
 # COMPLETE THE CODE IN THIS FUNCTION
 def solution_model():
-    # Downloads and extracts the dataset to the directory that
-    # contains this file.
-    download_and_extract_data()
-    # Reads the dataset from the CSV.
-    df = pd.read_csv('household_power_consumption.csv', sep=',',
-                     infer_datetime_format=True, index_col='datetime', header=0)
+    # DO NOT CHANGE THIS CODE
+    # Reads the dataset.
+    df = pd.read_csv('Weekly_U.S.Diesel_Retail_Prices.csv',
+                     infer_datetime_format=True, index_col='Week of', header=0)
 
     # Number of features in the dataset. We use all features as predictors to
-    # predict all features at future time steps.
-    N_FEATURES = len(df.columns) # DO NOT CHANGE THIS
+    # predict all features of future time steps.
+    N_FEATURES = len(df.columns)  # DO NOT CHANGE THIS
 
     # Normalizes the data
     data = df.values
     data = normalize_series(data, data.min(axis=0), data.max(axis=0))
 
     # Splits the data into training and validation sets.
-    SPLIT_TIME = int(len(data) * 0.5) # DO NOT CHANGE THIS
+    SPLIT_TIME = int(len(data) * 0.8)  # DO NOT CHANGE THIS
     x_train = data[:SPLIT_TIME]
     x_valid = data[SPLIT_TIME:]
 
@@ -188,10 +168,10 @@ def solution_model():
     # on the server.
     # Number of past time steps based on which future observations should be
     # predicted
-    N_PAST = 24  # DO NOT CHANGE THIS
+    N_PAST = 10  # DO NOT CHANGE THIS
 
     # Number of future time steps which are to be predicted.
-    N_FUTURE = 24  # DO NOT CHANGE THIS
+    N_FUTURE = 10  # DO NOT CHANGE THIS
 
     # By how many positions the window slides to create a new window
     # of observations.
@@ -213,11 +193,11 @@ def solution_model():
         # If you don't follow the instructions in the following comments,
         # tests will fail to grade your code:
         # The input layer of your model must have an input shape of:
-        # (BATCH_SIZE, N_PAST = 24, N_FEATURES = 7)
+        # (BATCH_SIZE, N_PAST = 10, N_FEATURES = 1)
         # The model must have an output shape of:
-        # (BATCH_SIZE, N_FUTURE = 24, N_FEATURES = 7).
-        # Make sure that there are N_FEATURES = 7 neurons in the final dense
-        # layer since the model predicts 7 features.
+        # (BATCH_SIZE, N_FUTURE = 10, N_FEATURES = 1).
+        # Make sure that there are N_FEATURES = 1 neurons in the final dense
+        # layer since the model predicts 1 feature.
 
         # HINT: Bidirectional LSTMs may help boost your score. This is only a
         # suggestion.
@@ -240,36 +220,30 @@ def solution_model():
         # since it has not been implemented in the cuDNN kernel and may
         # result in much longer training times.
 
-        tf.keras.layers.Conv1D(filters=96, kernel_size=5,
+        tf.keras.layers.Conv1D(filters=32, kernel_size=5,
                                strides=1, padding="causal",
                                activation="relu",
-                               input_shape=[None, 7]),
+                               input_shape=[None, 1]),
+        tf.keras.layers.LSTM(32, return_sequences=True),
+        tf.keras.layers.Dropout(0.4),
+        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(16, return_sequences=True)),
 
-        tf.keras.layers.LSTM(48, return_sequences=True),
-        # tf.keras.layers.Dropout(0.5),
-        tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(48, return_sequences=True)),
-        # tf.keras.layers.LSTM(32, return_sequences=True),
 
         tf.keras.layers.Dense(N_FEATURES)
     ])
 
     # Code to train and compile the model
-    optimizer =  tf.keras.optimizers.Adamax(learning_rate=1.5e-4) # YOUR CODE HERE
+    optimizer = tf.keras.optimizers.RMSprop(learning_rate=5e-4)  # YOUR CODE HERE
+
     model.compile(
         # YOUR CODE HERE
         loss=tf.keras.losses.Huber(),
         optimizer=optimizer,
         metrics=["mae"]
     )
-
-    checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
-        "mymodel_{epoch:02d}.h5", save_weights_only=False, save_best_only=True, verbose=1
-    )
-
     model.fit(
         # YOUR CODE HERE
-        train_set, epochs=500, validation_data=valid_set,
-        callbacks=[checkpoint_callback]
+        train_set, epochs=500, validation_data=valid_set
     )
 
     return model
@@ -284,26 +258,21 @@ if __name__ == '__main__':
     model = solution_model()
     model.save("mymodel.h5")
 
-
 # THIS CODE IS USED IN THE TESTER FOR FORECASTING. IF YOU WANT TO TEST YOUR MODEL
 # BEFORE UPLOADING YOU CAN DO IT WITH THIS
-#def mae(y_true, y_pred):
-#    return np.mean(abs(y_true.ravel() - y_pred.ravel()))
-#
-#
-#def model_forecast(model, series, window_size, batch_size):
+
+# def model_forecast(model, series, window_size, batch_size):
 #    ds = tf.data.Dataset.from_tensor_slices(series)
 #    ds = ds.window(window_size, shift=1, drop_remainder=True)
 #    ds = ds.flat_map(lambda w: w.batch(window_size))
 #    ds = ds.batch(batch_size, drop_remainder=True).prefetch(1)
 #    forecast = model.predict(ds)
 #    return forecast
-#
 
 # PASS THE NORMALIZED data IN THE FOLLOWING CODE
 
-#rnn_forecast = model_forecast(model, data, N_PAST, BATCH_SIZE)
-#rnn_forecast = rnn_forecast[SPLIT_TIME - N_PAST:-1, 0, :]
+# rnn_forecast = model_forecast(model, data, N_PAST, BATCH_SIZE)
+# rnn_forecast = rnn_forecast[SPLIT_TIME - N_PAST:-1, 0, 0]
 
-#x_valid = x_valid[:rnn_forecast.shape[0]]
-#result = mae(x_valid, rnn_forecast)
+# x_valid = np.squeeze(x_valid[:rnn_forecast.shape[0]])
+# result = tf.keras.metrics.mean_absolute_error(x_valid, rnn_forecast).numpy()
